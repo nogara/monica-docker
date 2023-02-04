@@ -1,0 +1,47 @@
+version: "3.4"
+
+services:
+  proxy:
+    image: imori333/nginx-cloudflare-ssl-proxy
+    depends_on:
+      - app
+    ports:
+      - 443:443
+      - 80:80
+    env_file: .env
+    volumes:
+      - /home/nogara/certs:/etc/nginx/certs
+    restart: always
+  app:
+    build: ./app
+    image: monica-app
+    depends_on:
+      - db
+    env_file: .env
+    ports:
+      - 8080:80
+    volumes:
+      - data:/var/www/html/storage
+    restart: always
+
+  db:
+    image: mysql:5.7
+    env_file: .env
+    volumes:
+      - mysql:/var/lib/mysql
+    restart: always
+
+  periodic-backup:
+    build: ./periodic-backup
+    env_file: .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /home/nogara/backup/monica:/opt/mysql/backup
+    command: crond -f -d 8
+    restart: always
+
+volumes:
+  data:
+    name: data
+  mysql:
+    name: mysql
